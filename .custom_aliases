@@ -1,0 +1,17 @@
+# ~/.custom_aliases
+# Add your personal aliases here.
+
+alias ll='ls -lah'
+alias gs='git status'
+
+# Amend the last commit without changing its message
+alias gu='git commit --amend --no-edit'
+
+# Directory navigation: each extra dot goes up one more level
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+alias .....='cd ../../../..'
+alias ......='cd ../../../../..'
+alias .......='cd ../../../../../..'
+alias ........='cd ../../../../../../..'
