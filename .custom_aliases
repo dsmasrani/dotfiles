@@ -37,7 +37,11 @@ alias ~='cd ~'
 alias -- -='cd -'
 
 # --- Quality of life ---
-alias reload='source ~/.zshrc'
+if [ -n "$ZSH_VERSION" ]; then
+  alias reload='source ~/.zshrc'
+else
+  alias reload='source ~/.bashrc'
+fi
 
 # Make a directory and cd into it
 mkcd() { mkdir -p "$1" && cd "$1"; }
