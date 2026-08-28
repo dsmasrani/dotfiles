@@ -1,18 +1,33 @@
 #! /bin/bash
 set -x
 
-# All of these segments will be symlinked from the home directory to your EFS drive.
-# You can safely customize this list.
-for segment in .claude .claude.json .codex .oh-my-zsh .zshenv .zprofile .zsh_history .zshrc .custom_aliases .cursor .cursor-server; do
-  # If you don't want to delete what's currently in the home directory, remove this.
-  if [ -e "$HOME/$segment" ]; then
-    rm -rf "$HOME/$segment"
-  fi
-  # Don't fail if the symlink already exists.
-  ln -s "$EFS_MOUNT_POINT/$segment" "$HOME" || true
-done
+# Symlink the aliases from wherever this repo is cloned.
+DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
+rm -f "$HOME/.custom_aliases"
+ln -s "$DOTFILES_DIR/.custom_aliases" "$HOME/.custom_aliases"
 
-# Make zsh the default shell so .zshrc (and .custom_aliases) load in every session.
-if [ "$(basename "$SHELL")" != "zsh" ] && command -v zsh >/dev/null 2>&1; then
-  sudo chsh "$(id -un)" --shell "$(command -v zsh)"
+# If a previous run left ~/.zshrc as a dangling symlink, clear it so the
+# machine's own zsh/oh-my-zsh config can be written normally.
+if [ -L "$HOME/.zshrc" ] && [ ! -e "$HOME/.zshrc" ]; then
+  rm -f "$HOME/.zshrc"
+fi
+
+# Source the aliases from the machine's existing .zshrc (idempotent —
+# only appends once, and never replaces the file).
+if ! grep -qs "custom_aliases" "$HOME/.zshrc"; then
+  printf '\n# Load custom aliases (added by dotfiles/install.sh)\n[ -f "$HOME/.custom_aliases" ] && source "$HOME/.custom_aliases"\n' >> "$HOME/.zshrc"
+fi
+
+# Persist tool state from the EFS drive when the platform provides it.
+# Shell config (.zshrc, .zshenv, .zprofile, .oh-my-zsh) is intentionally
+# NOT managed here — the machine image already sets that up.
+if [ -n "$EFS_MOUNT_POINT" ] && [ -d "$EFS_MOUNT_POINT" ]; then
+  for segment in .claude .claude.json .codex .zsh_history .cursor .cursor-server; do
+    # Never delete a home file in favor of a symlink that would dangle.
+    if [ ! -e "$EFS_MOUNT_POINT/$segment" ]; then
+      continue
+    fi
+    rm -rf "$HOME/$segment"
+    ln -s "$EFS_MOUNT_POINT/$segment" "$HOME/$segment" || true
+  done
 fi
